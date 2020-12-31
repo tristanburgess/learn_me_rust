@@ -59,6 +59,30 @@ fn main() {
     // would result in a compile time error stating that r3 is not allowed
     // since we're using immutable references after it would be declared.
     // println!("{} and {}", r1, r2);
+
+    let mut s4 = String::from("hello world");
+    let word = first_word_first_pass(&s4);
+    s4.clear();
+    // word still points to index 5 marking the end of the first word that
+    // was in s4, but s4 is now empty, word has to be updated again, and is stale
+    // data until then.
+
+    // solution: string slices!
+    // references to a portion of a String.
+    // range indices must occur at valid UTF-8 character boundaries
+    // can't slice into the middle of a multibyte character.
+    let mut s4 = String::from("hello world");
+    let hello = &s4[..5];
+    let world = &s4[6..];
+
+    let word = first_word(&s4);
+    // ERROR: the line below borrows s4, thus it can't also be borrowed
+    // mutable at this point to clear it
+    // s4.clear();
+    println!("the first word is: {}", word);
+    // but as before, this is ok because the compiler can verify this clear() happens after the
+    // last time s4 is used.
+    s4.clear();
 } // s, t, no longer valid, goes out of scope
 // s is popped off the stack
 // t is deallocated automatically from the heap using drop() (RAII)
@@ -69,4 +93,34 @@ fn calculate_length(s: &String) -> usize {
 
 fn change(s: &mut String) {
     s.push_str(", world!")
+}
+
+// This mostly works, but the problem
+// is that this returns a usize value which must be stored separately from
+// and thus maintained alongside the String the usize value is tracking.
+fn first_word_first_pass(s: &String) -> usize {
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return i;
+        }
+    }
+
+    s.len()
+}
+
+// The string slice is a ref back to s, thus
+// the slice state is maintained alongside s automagically
+// accepts &str as a param because that works with both &String and &str values.
+fn first_word(s: &str) -> &str {
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[..i];
+        }
+    }
+
+    &s[..]
 }
